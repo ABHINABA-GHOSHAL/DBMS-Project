@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+    }
+  
+    .dashboard-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+  
+    h1, h2 {
+      text-align: center;
+    }
+  
+    .dashboard-options {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+  
+    .dashboard-options button {
+      margin: 0 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  
+    .form-container {
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+  
+    .form-container label {
+      display: block;
+      margin-bottom: 5px;
+    }
+  
+    .form-container input[type="date"],
+    .form-container input[type="time"],
+    .form-container select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+  
+    .form-container button[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #activitiesTable {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    #activitiesTable th, #activitiesTable td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    #activitiesTable th {
+      background-color: #4CAF50;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <h1>Student Dashboard</h1>
+    <div class="dashboard-options">
+      <button id="bookActivityBtn">Book Activity</button>
+      <button id="viewActivitiesBtn">View Signed Up Activities</button>
+    </div>
+    <div id="bookActivityForm" class="form-container" style="display: none;">
+      <h2>Book Activity</h2>
+      <form id="activityForm">
+        <label for="activityType">Activity Type:</label>
+        <select id="activityType" name="activityType" required>
+          <option value="">Select Activity</option>
+          <option value="10001">Badminton</option>
+          <option value="10002">Gym</option>
+          <option value="10003">Table Tennis</option>
+          <option value="10004">Dance</option>
+          <option value="10005">Music</option>
+          <option value="10006">Drama</option>
+          <option value="10007">Meditation</option>
+          <option value="10008">Yoga</option>
+          <option value="10009">Drawing/Art</option>
+        </select>
+        <label for="activityDate">Date:</label>
+        <input type="date" id="activityDate" name="activityDate" required>
+        <label for="activityTime">Time:</label>
+        <input type="time" id="activityTime" name="activityTime" required>
+        <button type="submit">Book Activity</button>
+      </form>
+    </div>
+    <div id="signedUpActivities" class="form-container" style="display: none;">
+      <h2>Signed Up Activities</h2>
+      <table id="activitiesTable">
+        <thead>
+          <tr>
+            <th>Activity</th>
+            <th>Date</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const bookActivityBtn = document.getElementById('bookActivityBtn');
+    const bookActivityForm = document.getElementById('bookActivityForm');
+    const viewActivitiesBtn = document.getElementById('viewActivitiesBtn');
+    const signedUpActivities = document.getElementById('signedUpActivities');
+    const activitiesTable = document.getElementById('activitiesTable').getElementsByTagName('tbody')[0];
+
+    bookActivityBtn.addEventListener('click', () => {
+      bookActivityForm.style.display = 'block';
+      signedUpActivities.style.display = 'none';
+    });
+
+    viewActivitiesBtn.addEventListener('click', () => {
+      bookActivityForm.style.display = 'none';
+      signedUpActivities.style.display = 'block';
+      loadSignedUpActivities();
+    });
+
+    document.getElementById('activityForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const activityType = document.getElementById('activityType').value;
+      const activityDate = document.getElementById('activityDate').value;
+      const activityTime = document.getElementById('activityTime').value;
+      const studentId = new URLSearchParams(window.location.search).get('student_id');
+
+      fetch('/book-activity', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ studentId, activityId: activityType, activityDate, activityTime })
+      })
+      .then(response => {
+        if (response.ok) {
+          // Activity booked successfully
+          console.log('Activity booked successfully');
+          // Reload the signed up activities
+          loadSignedUpActivities();
+        } else {
+          // Handle booking failure
+          console.error('Error booking activity');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    });
+
+    function loadSignedUpActivities() {
+      const studentId = new URLSearchParams(window.location.search).get('student_id');
+
+      fetch(`/get-signed-up-activities?student_id=${studentId}`)
+      .then(response => response.json())
+      .then(activities => {
+        // Clear the table body
+        activitiesTable.innerHTML = '';
+
+        // Populate the table with the signed up activities
+        activities.forEach(activity => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${activity.activity}</td>
+            <td>${activity.formatted_date}</td>
+            <td>${activity.time}</td>
+          `;
+          activitiesTable.appendChild(row);
+        });
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    }
+  </script>
+</body>
+</html>
